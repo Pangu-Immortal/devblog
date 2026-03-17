@@ -73,7 +73,8 @@ export default function Navbar() {
   const handleLogout = () => {
     logout();
     setUserMenuOpen(false);
-    window.location.href = "/"; // 强制刷新确保状态清除
+    router.push("/");
+    router.refresh();
   };
 
   return (

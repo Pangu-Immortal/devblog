@@ -58,9 +58,9 @@ export default function SettingsPage() {
       }
     } catch { /* ignore */ }
     setSaved(true);
+    // 更新 AuthProvider 内存状态：直接刷新页面让 Provider 从 localStorage 重新读取
     setTimeout(() => {
-      // 刷新页面使 AuthProvider 重新读取 localStorage
-      window.location.href = "/profile";
+      window.location.reload();
     }, 800);
   };
 
