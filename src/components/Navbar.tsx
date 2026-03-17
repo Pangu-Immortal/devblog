@@ -1,11 +1,51 @@
 "use client";
 
 import Link from "next/link";
-import { Search, PenLine, Bell, User } from "lucide-react";
-import { useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import { Search, PenLine, Bell, User, LogOut, Settings, BookOpen, Flame } from "lucide-react";
+import { useState, useRef, useEffect } from "react";
+
+const NAV_LINKS = [
+  { href: "/", label: "首页" },
+  { href: "/pins", label: "沸点" },
+  { href: "/courses", label: "课程" },
+  { href: "/events", label: "活动" },
+];
 
 export default function Navbar() {
+  const pathname = usePathname();
+  const router = useRouter();
   const [searchOpen, setSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const searchRef = useRef<HTMLInputElement>(null);
+
+  // 点击外部关闭用户菜单
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setUserMenuOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  // 搜索提交
+  const handleSearch = () => {
+    if (searchQuery.trim()) {
+      router.push(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
+      setSearchOpen(false);
+      setSearchQuery("");
+    }
+  };
+
+  // 判断当前导航是否激活（basePath 下的路径匹配）
+  const isActive = (href: string) => {
+    if (href === "/") return pathname === "/" || pathname === "/devblog" || pathname === "/devblog/";
+    return pathname.startsWith(href) || pathname.startsWith(`/devblog${href}`);
+  };
 
   return (
     <nav className="sticky top-0 z-50 bg-white border-b border-gray-200">
@@ -15,42 +55,132 @@ export default function Navbar() {
           <Link href="/" className="text-xl font-bold text-blue-600 tracking-tight">
             DevBlog
           </Link>
-          <div className="hidden md:flex items-center gap-4 text-sm text-gray-600">
-            <Link href="/" className="hover:text-blue-600 transition-colors font-medium">首页</Link>
-            <span className="hover:text-blue-600 transition-colors cursor-pointer">沸点</span>
-            <span className="hover:text-blue-600 transition-colors cursor-pointer">课程</span>
-            <span className="hover:text-blue-600 transition-colors cursor-pointer">活动</span>
+          <div className="hidden md:flex items-center gap-1 text-sm">
+            {NAV_LINKS.map(link => (
+              <Link
+                key={link.href}
+                href={link.href}
+                className={`px-3 py-1.5 rounded-lg transition-colors ${
+                  isActive(link.href)
+                    ? "text-blue-600 bg-blue-50 font-medium"
+                    : "text-gray-600 hover:text-blue-600 hover:bg-gray-50"
+                }`}
+              >
+                {link.label}
+              </Link>
+            ))}
           </div>
         </div>
 
         {/* 右侧 搜索 + 操作 */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
+          {/* 搜索 */}
           {searchOpen ? (
             <div className="flex items-center bg-gray-100 rounded-full px-3 py-1.5">
               <Search size={16} className="text-gray-400" />
               <input
+                ref={searchRef}
                 autoFocus
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                onKeyDown={e => { if (e.key === "Enter") handleSearch(); if (e.key === "Escape") { setSearchOpen(false); setSearchQuery(""); } }}
                 className="bg-transparent outline-none text-sm ml-2 w-40"
                 placeholder="搜索文章..."
-                onBlur={() => setSearchOpen(false)}
+                onBlur={() => { if (!searchQuery) setSearchOpen(false); }}
               />
             </div>
           ) : (
-            <button onClick={() => setSearchOpen(true)} className="p-2 hover:bg-gray-100 rounded-full">
+            <button onClick={() => setSearchOpen(true)} className="p-2 hover:bg-gray-100 rounded-full" title="搜索">
               <Search size={18} className="text-gray-500" />
             </button>
           )}
-          <button className="p-2 hover:bg-gray-100 rounded-full">
+
+          {/* 通知 */}
+          <Link href="/notifications" className="relative p-2 hover:bg-gray-100 rounded-full" title="消息通知">
             <Bell size={18} className="text-gray-500" />
-          </button>
-          <button className="flex items-center gap-2 bg-blue-600 text-white text-sm px-4 py-1.5 rounded-full hover:bg-blue-700 transition-colors">
+            <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full" />
+          </Link>
+
+          {/* 写文章 */}
+          <Link
+            href="/write"
+            className="flex items-center gap-2 bg-blue-600 text-white text-sm px-4 py-1.5 rounded-full hover:bg-blue-700 transition-colors"
+          >
             <PenLine size={14} />
-            写文章
-          </button>
-          <button className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center hover:bg-gray-300">
-            <User size={16} className="text-gray-500" />
-          </button>
+            <span className="hidden sm:inline">写文章</span>
+          </Link>
+
+          {/* 用户头像 + 下拉菜单 */}
+          <div className="relative" ref={menuRef}>
+            <button
+              onClick={() => setUserMenuOpen(!userMenuOpen)}
+              className="w-8 h-8 rounded-full overflow-hidden hover:ring-2 hover:ring-blue-200 transition-all"
+            >
+              <img
+                src="https://api.dicebear.com/9.x/avataaars/svg?seed=Felix"
+                alt="用户头像"
+                className="w-full h-full bg-gray-200"
+              />
+            </button>
+
+            {userMenuOpen && (
+              <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-xl border border-gray-200 shadow-lg py-1 z-50">
+                <Link
+                  href="/profile"
+                  onClick={() => setUserMenuOpen(false)}
+                  className="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50"
+                >
+                  <User size={16} /> 个人主页
+                </Link>
+                <Link
+                  href="/write"
+                  onClick={() => setUserMenuOpen(false)}
+                  className="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50"
+                >
+                  <PenLine size={16} /> 写文章
+                </Link>
+                <Link
+                  href="/pins"
+                  onClick={() => setUserMenuOpen(false)}
+                  className="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50"
+                >
+                  <Flame size={16} /> 我的沸点
+                </Link>
+                <Link
+                  href="/courses"
+                  onClick={() => setUserMenuOpen(false)}
+                  className="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50"
+                >
+                  <BookOpen size={16} /> 我的课程
+                </Link>
+                <div className="border-t border-gray-100 my-1" />
+                <button className="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 w-full text-left">
+                  <Settings size={16} /> 设置
+                </button>
+                <button className="flex items-center gap-2 px-4 py-2.5 text-sm text-red-500 hover:bg-red-50 w-full text-left">
+                  <LogOut size={16} /> 退出登录
+                </button>
+              </div>
+            )}
+          </div>
         </div>
+      </div>
+
+      {/* 移动端导航 */}
+      <div className="md:hidden flex items-center gap-1 px-4 pb-2 overflow-x-auto">
+        {NAV_LINKS.map(link => (
+          <Link
+            key={link.href}
+            href={link.href}
+            className={`px-3 py-1 rounded-full text-sm whitespace-nowrap ${
+              isActive(link.href)
+                ? "bg-blue-600 text-white"
+                : "text-gray-500 hover:bg-gray-100"
+            }`}
+          >
+            {link.label}
+          </Link>
+        ))}
       </div>
     </nav>
   );
