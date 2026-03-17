@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Eye, ThumbsUp, MessageCircle, Share2, Bookmark } from "lucide-react";
 import Navbar from "@/components/Navbar";
+import MarkdownRenderer from "@/components/MarkdownRenderer";
 import { getPostById, POSTS } from "@/lib/mock-data";
 
 export function generateStaticParams() {
@@ -64,9 +65,9 @@ export default async function PostDetail({ params }: { params: Promise<{ id: str
             ))}
           </div>
 
-          {/* 正文 — Markdown 渲染简化版 */}
-          <div className="prose prose-gray max-w-none text-gray-700 leading-relaxed whitespace-pre-wrap text-[15px]">
-            {post.content}
+          {/* 正文 — Markdown 渲染 */}
+          <div className="max-w-none">
+            <MarkdownRenderer content={post.content} />
           </div>
 
           {/* 底部操作栏 */}
