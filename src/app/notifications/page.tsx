@@ -1,10 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import Navbar from "@/components/Navbar";
 import { Heart, MessageCircle, UserPlus, Bell, CheckCheck } from "lucide-react";
 import { NOTIFICATIONS } from "@/lib/mock-extras";
+import { useAuth } from "@/lib/auth-context";
 
 function timeAgo(dateStr: string) {
   const diff = Date.now() - new Date(dateStr).getTime();
@@ -31,16 +33,45 @@ const typeColors = {
 };
 
 export default function NotificationsPage() {
-  const [notifications, setNotifications] = useState(NOTIFICATIONS);
+  const { isLoggedIn } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!isLoggedIn) router.replace("/login?redirect=/notifications");
+  }, [isLoggedIn, router]);
+
+  if (!isLoggedIn) return null;
+
+  const [notifications, setNotifications] = useState(() => {
+    // 从 localStorage 恢复已读状态
+    try {
+      const readIds: string[] = JSON.parse(localStorage.getItem("devblog_read_notifications") || "[]");
+      const readSet = new Set(readIds);
+      return NOTIFICATIONS.map(n => readSet.has(n.id) ? { ...n, read: true } : n);
+    } catch {
+      return NOTIFICATIONS;
+    }
+  });
   const [filter, setFilter] = useState("all");
   const unreadCount = notifications.filter(n => !n.read).length;
 
+  // 同步已读状态到 localStorage
+  const syncReadState = (updated: typeof notifications) => {
+    const readIds = updated.filter(n => n.read).map(n => n.id);
+    localStorage.setItem("devblog_read_notifications", JSON.stringify(readIds));
+    window.dispatchEvent(new Event("notifications-updated"));
+  };
+
   const markAllRead = () => {
-    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+    const updated = notifications.map(n => ({ ...n, read: true }));
+    setNotifications(updated);
+    syncReadState(updated);
   };
 
   const markRead = (id: string) => {
-    setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
+    const updated = notifications.map(n => n.id === id ? { ...n, read: true } : n);
+    setNotifications(updated);
+    syncReadState(updated);
   };
 
   const filtered = filter === "all" ? notifications :

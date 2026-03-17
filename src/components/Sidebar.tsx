@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { TrendingUp, Award, BookOpen } from "lucide-react";
 import { useState } from "react";
+import { useAuth } from "@/lib/auth-context";
 
 const hotArticles = [
   { rank: 1, title: "2026 年前端框架趋势：React Server Components 彻底改变了什么？", id: "1", hot: "12.5k" },
@@ -26,8 +27,10 @@ const hotColumns = [
 
 export default function Sidebar() {
   const [followed, setFollowed] = useState<Set<string>>(new Set());
+  const { isLoggedIn, openLoginPrompt } = useAuth();
 
   const toggleFollow = (name: string) => {
+    if (!isLoggedIn) { openLoginPrompt(); return; }
     setFollowed(prev => {
       const next = new Set(prev);
       if (next.has(name)) next.delete(name); else next.add(name);
@@ -71,7 +74,7 @@ export default function Sidebar() {
         <div className="space-y-3">
           {recommendedAuthors.map((author) => (
             <div key={author.name} className="flex items-center gap-3">
-              <Link href="/profile" className="flex items-center gap-3 flex-1 min-w-0 group">
+              <Link href={`/search?q=${encodeURIComponent(author.name)}`} className="flex items-center gap-3 flex-1 min-w-0 group">
                 <img
                   src={`https://api.dicebear.com/9.x/avataaars/svg?seed=${author.avatar}`}
                   alt={author.name}

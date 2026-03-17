@@ -1,10 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import Navbar from "@/components/Navbar";
 import MarkdownRenderer from "@/components/MarkdownRenderer";
 import { Eye, Edit3, Send, ImageIcon, Link2, Code, Bold, Italic, List, ListOrdered, Quote, Heading2 } from "lucide-react";
+import { useAuth } from "@/lib/auth-context";
 
 const TOOLBAR_ITEMS = [
   { icon: Bold, label: "加粗", prefix: "**", suffix: "**" },
@@ -18,6 +20,14 @@ const TOOLBAR_ITEMS = [
 ];
 
 export default function WritePage() {
+  const { isLoggedIn } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!isLoggedIn) router.replace("/login?redirect=/write");
+  }, [isLoggedIn, router]);
+
+  if (!isLoggedIn) return null;
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [tags, setTags] = useState<string[]>([]);

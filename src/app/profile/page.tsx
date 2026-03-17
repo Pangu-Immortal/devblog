@@ -1,12 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import Navbar from "@/components/Navbar";
 import PostCard from "@/components/PostCard";
 import { Calendar, Heart, FileText, MessageCircle, Edit3 } from "lucide-react";
 import { POSTS } from "@/lib/mock-data";
 import { CURRENT_USER, PINS } from "@/lib/mock-extras";
+import { useAuth } from "@/lib/auth-context";
 
 function formatCount(n: number): string {
   if (n >= 10000) return (n / 10000).toFixed(1) + "万";
@@ -25,15 +27,28 @@ function timeAgo(dateStr: string) {
 }
 
 export default function ProfilePage() {
+  const { isLoggedIn, user: authUser } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!isLoggedIn) router.replace("/login?redirect=/profile");
+  }, [isLoggedIn, router]);
+
+  if (!isLoggedIn || !authUser) return null;
+
   const [activeTab, setActiveTab] = useState<"posts" | "pins" | "likes">("posts");
-  const user = CURRENT_USER;
+
+  // 用登录用户信息覆盖 mock 数据，支持 settings 页面修改后的效果
+  const user = { ...CURRENT_USER, name: authUser.name, avatar: authUser.avatar, title: authUser.title };
   const userPosts = POSTS.filter(p => p.author.name === user.name);
   const userPins = PINS.filter(p => p.author.name === user.name);
+
+  const likedPosts = POSTS.slice(0, 3); // 模拟赞过的文章
 
   const tabs = [
     { key: "posts" as const, label: "文章", count: userPosts.length, icon: FileText },
     { key: "pins" as const, label: "沸点", count: userPins.length, icon: MessageCircle },
-    { key: "likes" as const, label: "赞过", count: 24, icon: Heart },
+    { key: "likes" as const, label: "赞过", count: likedPosts.length, icon: Heart },
   ];
 
   return (
@@ -128,7 +143,7 @@ export default function ProfilePage() {
 
         {activeTab === "likes" && (
           <div className="bg-white rounded-xl border border-gray-200 px-4">
-            {POSTS.slice(0, 3).map(post => <PostCard key={post.id} post={post} />)}
+            {likedPosts.map(post => <PostCard key={post.id} post={post} />)}
           </div>
         )}
       </main>

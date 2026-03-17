@@ -4,6 +4,7 @@ import { useState } from "react";
 import Navbar from "@/components/Navbar";
 import { Heart, MessageCircle, Share2, ImageIcon } from "lucide-react";
 import { PINS, PIN_TOPICS } from "@/lib/mock-extras";
+import { useAuth } from "@/lib/auth-context";
 
 function timeAgo(dateStr: string) {
   const diff = Date.now() - new Date(dateStr).getTime();
@@ -18,10 +19,12 @@ function timeAgo(dateStr: string) {
 export default function PinsPage() {
   const [activeTopic, setActiveTopic] = useState("推荐");
   const [likedPins, setLikedPins] = useState<Set<string>>(new Set());
+  const { isLoggedIn, openLoginPrompt } = useAuth();
 
   const filtered = activeTopic === "推荐" ? PINS : PINS.filter(p => p.topic === activeTopic);
 
   const toggleLike = (id: string) => {
+    if (!isLoggedIn) { openLoginPrompt(); return; }
     setLikedPins(prev => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id); else next.add(id);
@@ -63,7 +66,10 @@ export default function PinsPage() {
             <button className="flex items-center gap-1 text-sm text-gray-400 hover:text-blue-600">
               <ImageIcon size={16} /> 图片
             </button>
-            <button className="bg-blue-600 text-white text-sm px-6 py-1.5 rounded-full hover:bg-blue-700">
+            <button
+              onClick={() => { if (!isLoggedIn) { openLoginPrompt(); return; } }}
+              className="bg-blue-600 text-white text-sm px-6 py-1.5 rounded-full hover:bg-blue-700"
+            >
               发布
             </button>
           </div>

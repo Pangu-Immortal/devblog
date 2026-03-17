@@ -6,6 +6,7 @@ import { ArrowLeft, Eye, Heart, MessageCircle, Share2, Bookmark, Send } from "lu
 import Navbar from "@/components/Navbar";
 import MarkdownRenderer from "@/components/MarkdownRenderer";
 import { getCommentsByPostId } from "@/lib/mock-extras";
+import { useAuth } from "@/lib/auth-context";
 import type { Post } from "@/lib/mock-data";
 import type { Comment } from "@/lib/mock-extras";
 
@@ -94,6 +95,7 @@ function CommentItem({ comment, onReply, onLike, likedComments }: {
 
 export default function PostDetailClient({ post }: { post: Post }) {
   const id = post.id;
+  const { isLoggedIn, openLoginPrompt, user: authUser } = useAuth();
   const [liked, setLiked] = useState(false);
   const [bookmarked, setBookmarked] = useState(false);
   const [followed, setFollowed] = useState(false);
@@ -137,6 +139,7 @@ export default function PostDetailClient({ post }: { post: Post }) {
   const mockComments = getCommentsByPostId(id);
 
   const toggleLike = () => {
+    if (!isLoggedIn) { openLoginPrompt(); return; }
     const newLiked = !liked;
     setLiked(newLiked);
     const delta = newLiked ? 1 : -1;
@@ -150,6 +153,7 @@ export default function PostDetailClient({ post }: { post: Post }) {
   };
 
   const toggleBookmark = () => {
+    if (!isLoggedIn) { openLoginPrompt(); return; }
     const newVal = !bookmarked;
     setBookmarked(newVal);
     const arr: string[] = JSON.parse(localStorage.getItem("devblog_bookmarks") || "[]");
@@ -158,6 +162,7 @@ export default function PostDetailClient({ post }: { post: Post }) {
   };
 
   const toggleFollow = () => {
+    if (!isLoggedIn) { openLoginPrompt(); return; }
     const newVal = !followed;
     setFollowed(newVal);
     const arr: string[] = JSON.parse(localStorage.getItem("devblog_follows") || "[]");
@@ -172,6 +177,7 @@ export default function PostDetailClient({ post }: { post: Post }) {
   };
 
   const toggleCommentLike = (commentId: string) => {
+    if (!isLoggedIn) { openLoginPrompt(); return; }
     setLikedComments(prev => {
       const next = new Set(prev);
       if (next.has(commentId)) next.delete(commentId); else next.add(commentId);
@@ -181,6 +187,7 @@ export default function PostDetailClient({ post }: { post: Post }) {
   };
 
   const submitComment = () => {
+    if (!isLoggedIn) { openLoginPrompt(); return; }
     if (!commentText.trim()) return;
     const nc = { id: `uc_${Date.now()}`, postId: id, content: commentText.trim(), createdAt: new Date().toISOString() };
     const updated = [nc, ...userComments];
@@ -272,7 +279,7 @@ export default function PostDetailClient({ post }: { post: Post }) {
         <div id="comments" className="bg-white rounded-xl border border-gray-200 p-6 mt-6">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">评论 ({totalComments})</h3>
           <div className="flex items-start gap-3 mb-6 pb-6 border-b border-gray-100">
-            <img src="https://api.dicebear.com/9.x/avataaars/svg?seed=Felix" alt="我" className="w-8 h-8 rounded-full bg-gray-100 flex-shrink-0" />
+            <img src={authUser?.avatar || "https://api.dicebear.com/9.x/avataaars/svg?seed=Felix"} alt="我" className="w-8 h-8 rounded-full bg-gray-100 flex-shrink-0" />
             <div className="flex-1">
               {replyingTo && (
                 <div className="text-xs text-blue-600 mb-2 flex items-center gap-2">
@@ -282,7 +289,8 @@ export default function PostDetailClient({ post }: { post: Post }) {
               <textarea
                 value={commentText}
                 onChange={e => setCommentText(e.target.value)}
-                placeholder="写下你的评论..."
+                onFocus={() => { if (!isLoggedIn) { openLoginPrompt(); } }}
+                placeholder={isLoggedIn ? "写下你的评论..." : "登录后发表评论..."}
                 rows={3}
                 className="w-full text-sm text-gray-700 border border-gray-200 rounded-lg p-3 outline-none focus:border-blue-300 resize-none"
               />
@@ -301,10 +309,10 @@ export default function PostDetailClient({ post }: { post: Post }) {
           {userComments.map(uc => (
             <div key={uc.id} className="py-4 border-b border-gray-50">
               <div className="flex items-start gap-3">
-                <img src="https://api.dicebear.com/9.x/avataaars/svg?seed=Felix" alt="我" className="w-8 h-8 rounded-full bg-gray-100" />
+                <img src={authUser?.avatar || "https://api.dicebear.com/9.x/avataaars/svg?seed=Felix"} alt="我" className="w-8 h-8 rounded-full bg-gray-100" />
                 <div>
                   <div className="flex items-center gap-2 mb-1">
-                    <span className="text-sm font-medium text-gray-900">张三丰</span>
+                    <span className="text-sm font-medium text-gray-900">{authUser?.name || "我"}</span>
                     <span className="text-xs text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded">作者</span>
                     <span className="text-xs text-gray-400">{timeAgo(uc.createdAt)}</span>
                   </div>

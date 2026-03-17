@@ -2,8 +2,10 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Search, PenLine, Bell, User, LogOut, Settings, BookOpen, Flame } from "lucide-react";
-import { useState, useRef, useEffect } from "react";
+import { Search, PenLine, Bell, User, LogOut, Settings, BookOpen, Flame, LogIn } from "lucide-react";
+import { useState, useRef, useEffect, useMemo } from "react";
+import { useAuth } from "@/lib/auth-context";
+import { NOTIFICATIONS } from "@/lib/mock-extras";
 
 const NAV_LINKS = [
   { href: "/", label: "首页" },
@@ -15,11 +17,32 @@ const NAV_LINKS = [
 export default function Navbar() {
   const pathname = usePathname();
   const router = useRouter();
+  const { user, isLoggedIn, logout } = useAuth();
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
-  const searchRef = useRef<HTMLInputElement>(null);
+
+  // 计算未读通知数
+  const [readIds, setReadIds] = useState<Set<string>>(new Set());
+  useEffect(() => {
+    try {
+      const ids: string[] = JSON.parse(localStorage.getItem("devblog_read_notifications") || "[]");
+      setReadIds(new Set(ids));
+    } catch { /* ignore */ }
+    // 监听 localStorage 变化（同一页面内自定义事件）
+    const handler = () => {
+      try {
+        const ids: string[] = JSON.parse(localStorage.getItem("devblog_read_notifications") || "[]");
+        setReadIds(new Set(ids));
+      } catch { /* ignore */ }
+    };
+    window.addEventListener("notifications-updated", handler);
+    return () => window.removeEventListener("notifications-updated", handler);
+  }, []);
+  const unreadCount = useMemo(() => {
+    return NOTIFICATIONS.filter(n => !n.read && !readIds.has(n.id)).length;
+  }, [readIds]);
 
   // 点击外部关闭用户菜单
   useEffect(() => {
@@ -45,6 +68,12 @@ export default function Navbar() {
   const isActive = (href: string) => {
     if (href === "/") return pathname === "/" || pathname === "/devblog" || pathname === "/devblog/";
     return pathname.startsWith(href) || pathname.startsWith(`/devblog${href}`);
+  };
+
+  const handleLogout = () => {
+    logout();
+    setUserMenuOpen(false);
+    window.location.href = "/"; // 强制刷新确保状态清除
   };
 
   return (
@@ -79,7 +108,6 @@ export default function Navbar() {
             <div className="flex items-center bg-gray-100 rounded-full px-3 py-1.5">
               <Search size={16} className="text-gray-400" />
               <input
-                ref={searchRef}
                 autoFocus
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
@@ -95,74 +123,100 @@ export default function Navbar() {
             </button>
           )}
 
-          {/* 通知 */}
-          <Link href="/notifications" className="relative p-2 hover:bg-gray-100 rounded-full" title="消息通知">
-            <Bell size={18} className="text-gray-500" />
-            <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full" />
-          </Link>
+          {isLoggedIn ? (
+            <>
+              {/* 通知 */}
+              <Link href="/notifications" className="relative p-2 hover:bg-gray-100 rounded-full" title="消息通知">
+                <Bell size={18} className="text-gray-500" />
+                {unreadCount > 0 && <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full" />}
+              </Link>
 
-          {/* 写文章 */}
-          <Link
-            href="/write"
-            className="flex items-center gap-2 bg-blue-600 text-white text-sm px-4 py-1.5 rounded-full hover:bg-blue-700 transition-colors"
-          >
-            <PenLine size={14} />
-            <span className="hidden sm:inline">写文章</span>
-          </Link>
+              {/* 写文章 */}
+              <Link
+                href="/write"
+                className="flex items-center gap-2 bg-blue-600 text-white text-sm px-4 py-1.5 rounded-full hover:bg-blue-700 transition-colors"
+              >
+                <PenLine size={14} />
+                <span className="hidden sm:inline">写文章</span>
+              </Link>
 
-          {/* 用户头像 + 下拉菜单 */}
-          <div className="relative" ref={menuRef}>
-            <button
-              onClick={() => setUserMenuOpen(!userMenuOpen)}
-              className="w-8 h-8 rounded-full overflow-hidden hover:ring-2 hover:ring-blue-200 transition-all"
-            >
-              <img
-                src="https://api.dicebear.com/9.x/avataaars/svg?seed=Felix"
-                alt="用户头像"
-                className="w-full h-full bg-gray-200"
-              />
-            </button>
-
-            {userMenuOpen && (
-              <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-xl border border-gray-200 shadow-lg py-1 z-50">
-                <Link
-                  href="/profile"
-                  onClick={() => setUserMenuOpen(false)}
-                  className="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50"
+              {/* 用户头像 + 下拉菜单 */}
+              <div className="relative" ref={menuRef}>
+                <button
+                  onClick={() => setUserMenuOpen(!userMenuOpen)}
+                  className="w-8 h-8 rounded-full overflow-hidden hover:ring-2 hover:ring-blue-200 transition-all"
                 >
-                  <User size={16} /> 个人主页
-                </Link>
-                <Link
-                  href="/write"
-                  onClick={() => setUserMenuOpen(false)}
-                  className="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50"
-                >
-                  <PenLine size={16} /> 写文章
-                </Link>
-                <Link
-                  href="/pins"
-                  onClick={() => setUserMenuOpen(false)}
-                  className="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50"
-                >
-                  <Flame size={16} /> 我的沸点
-                </Link>
-                <Link
-                  href="/courses"
-                  onClick={() => setUserMenuOpen(false)}
-                  className="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50"
-                >
-                  <BookOpen size={16} /> 我的课程
-                </Link>
-                <div className="border-t border-gray-100 my-1" />
-                <button className="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 w-full text-left">
-                  <Settings size={16} /> 设置
+                  <img
+                    src={user!.avatar}
+                    alt={user!.name}
+                    className="w-full h-full bg-gray-200"
+                  />
                 </button>
-                <button className="flex items-center gap-2 px-4 py-2.5 text-sm text-red-500 hover:bg-red-50 w-full text-left">
-                  <LogOut size={16} /> 退出登录
-                </button>
+
+                {userMenuOpen && (
+                  <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-xl border border-gray-200 shadow-lg py-1 z-50">
+                    <div className="px-4 py-2.5 border-b border-gray-100">
+                      <p className="text-sm font-medium text-gray-900">{user!.name}</p>
+                      <p className="text-xs text-gray-400">{user!.email}</p>
+                    </div>
+                    <Link
+                      href="/profile"
+                      onClick={() => setUserMenuOpen(false)}
+                      className="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50"
+                    >
+                      <User size={16} /> 个人主页
+                    </Link>
+                    <Link
+                      href="/write"
+                      onClick={() => setUserMenuOpen(false)}
+                      className="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50"
+                    >
+                      <PenLine size={16} /> 写文章
+                    </Link>
+                    <Link
+                      href="/pins"
+                      onClick={() => setUserMenuOpen(false)}
+                      className="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50"
+                    >
+                      <Flame size={16} /> 我的沸点
+                    </Link>
+                    <Link
+                      href="/courses"
+                      onClick={() => setUserMenuOpen(false)}
+                      className="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50"
+                    >
+                      <BookOpen size={16} /> 我的课程
+                    </Link>
+                    <div className="border-t border-gray-100 my-1" />
+                    <Link
+                      href="/settings"
+                      onClick={() => setUserMenuOpen(false)}
+                      className="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 w-full"
+                    >
+                      <Settings size={16} /> 设置
+                    </Link>
+                    <button
+                      onClick={handleLogout}
+                      className="flex items-center gap-2 px-4 py-2.5 text-sm text-red-500 hover:bg-red-50 w-full text-left"
+                    >
+                      <LogOut size={16} /> 退出登录
+                    </button>
+                  </div>
+                )}
               </div>
-            )}
-          </div>
+            </>
+          ) : (
+            <>
+              {/* 未登录：登录按钮 */}
+              <Link
+                href={`/login?redirect=${encodeURIComponent(pathname)}`}
+                className="flex items-center gap-2 bg-blue-600 text-white text-sm px-4 py-1.5 rounded-full hover:bg-blue-700 transition-colors"
+              >
+                <LogIn size={14} />
+                <span className="hidden sm:inline">登录</span>
+              </Link>
+            </>
+          )}
         </div>
       </div>
 
