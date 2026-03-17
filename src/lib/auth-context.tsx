@@ -21,6 +21,7 @@ interface AuthContextType {
   login: (email: string, password: string) => { ok: boolean; error?: string };
   register: (name: string, email: string, password: string) => { ok: boolean; error?: string };
   logout: () => void;
+  updateUser: (updates: Partial<AuthUser>) => void; // 更新当前用户信息
   showLoginPrompt: boolean;     // 是否显示登录弹窗
   openLoginPrompt: () => void;  // 打开登录弹窗
   closeLoginPrompt: () => void; // 关闭登录弹窗
@@ -108,6 +109,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem(CURRENT_USER_KEY);
   }, []);
 
+  const updateUser = useCallback((updates: Partial<AuthUser>) => {
+    setUser(prev => {
+      if (!prev) return prev;
+      const updated = { ...prev, ...updates };
+      localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(updated));
+      return updated;
+    });
+  }, []);
+
   const openLoginPrompt = useCallback(() => setShowLoginPrompt(true), []);
   const closeLoginPrompt = useCallback(() => setShowLoginPrompt(false), []);
 
@@ -118,6 +128,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       login,
       register,
       logout,
+      updateUser,
       showLoginPrompt,
       openLoginPrompt,
       closeLoginPrompt,

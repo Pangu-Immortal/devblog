@@ -14,7 +14,7 @@ const AVATAR_SEEDS = [
 ];
 
 export default function SettingsPage() {
-  const { isLoggedIn, user, logout } = useAuth();
+  const { isLoggedIn, user, updateUser } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
@@ -44,9 +44,8 @@ export default function SettingsPage() {
   if (!isLoggedIn || !user) return null;
 
   const handleSave = () => {
-    // 更新 auth context 中的用户信息
-    const updated = { ...user, name, title, avatar: selectedAvatar, email: user.email };
-    localStorage.setItem("devblog_current_user", JSON.stringify(updated));
+    // 通过 AuthContext 更新用户信息（同步 React state + localStorage）
+    updateUser({ name, title, avatar: selectedAvatar });
     localStorage.setItem("devblog_user_extra", JSON.stringify({ bio }));
     // 更新注册用户列表中对应的用户
     try {
@@ -58,10 +57,7 @@ export default function SettingsPage() {
       }
     } catch { /* ignore */ }
     setSaved(true);
-    // 更新 AuthProvider 内存状态：直接刷新页面让 Provider 从 localStorage 重新读取
-    setTimeout(() => {
-      window.location.reload();
-    }, 800);
+    setTimeout(() => router.push("/profile"), 800);
   };
 
   return (
