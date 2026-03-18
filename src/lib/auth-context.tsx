@@ -51,17 +51,25 @@ function getStoredUsers(): StoredUser[] {
   try {
     const raw = localStorage.getItem(USERS_KEY);
     if (!raw) {
-      // 首次访问，初始化 4 个默认账号
+      // 首次访问，初始化所有预置账号
       localStorage.setItem(USERS_KEY, JSON.stringify(DEFAULT_USERS));
       return [...DEFAULT_USERS];
     }
     const users: StoredUser[] = JSON.parse(raw);
-    // 兼容旧数据：确保所有默认用户都存在
     let updated = false;
+
     for (const du of DEFAULT_USERS) {
-      if (!users.some(u => u.userId === du.userId)) {
+      const idx = users.findIndex(u => u.userId === du.userId);
+      if (idx < 0) {
+        // 新增预置用户
         users.push(du);
         updated = true;
+      } else {
+        // 已存在的预置用户：同步头像/职位（修复旧 avataaars 头像）
+        if (users[idx].avatar !== du.avatar || users[idx].title !== du.title) {
+          users[idx] = { ...users[idx], avatar: du.avatar, title: du.title };
+          updated = true;
+        }
       }
     }
     if (updated) localStorage.setItem(USERS_KEY, JSON.stringify(users));
@@ -76,13 +84,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isHydrated, setIsHydrated] = useState(false); // localStorage 恢复完成标志
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
 
-  // 初始化：从 localStorage 恢复登录状态
+  // 初始化：从 localStorage 恢复登录状态，并修复旧头像
   useEffect(() => {
     try {
-      const raw = localStorage.getItem(CURRENT_USER_KEY);
-      if (raw) setUser(JSON.parse(raw));
-      // 确保预置账号存在
+      // 确保预置账号存在 + 旧头像修复
       getStoredUsers();
+      // 恢复当前登录用户
+      const raw = localStorage.getItem(CURRENT_USER_KEY);
+      if (raw) {
+        const saved = JSON.parse(raw);
+        // 修复：如果当前登录用户使用了旧 avataaars 头像，从最新预置数据同步
+        if (saved.avatar?.includes("avataaars")) {
+          const preset = DEFAULT_USERS.find(u => u.userId === saved.userId);
+          if (preset) {
+            saved.avatar = preset.avatar;
+            localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(saved));
+          }
+        }
+        setUser(saved);
+      }
     } catch { /* ignore */ }
     setIsHydrated(true); // 无论成功失败，标记恢复完成
   }, []);
