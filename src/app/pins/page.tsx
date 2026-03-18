@@ -5,6 +5,8 @@ import Navbar from "@/components/Navbar";
 import { Heart, MessageCircle, Share2, ImageIcon } from "lucide-react";
 import { PINS, PIN_TOPICS } from "@/lib/mock-extras";
 import { useAuth } from "@/lib/auth-context";
+import { useAuthorDisplay } from "@/lib/use-author";
+import type { Pin } from "@/lib/mock-extras";
 
 function timeAgo(dateStr: string) {
   const diff = Date.now() - new Date(dateStr).getTime();
@@ -14,6 +16,43 @@ function timeAgo(dateStr: string) {
   const h = Math.floor(m / 60);
   if (h < 24) return `${h} 小时前`;
   return `${Math.floor(h / 24)} 天前`;
+}
+
+function PinCard({ pin, liked, onToggleLike }: { pin: Pin; liked: boolean; onToggleLike: () => void }) {
+  const author = useAuthorDisplay(pin.author);
+  return (
+    <div className="bg-white rounded-xl border border-gray-200 p-4">
+      <div className="flex items-center gap-3 mb-3">
+        <img src={author.avatar} alt={author.name} className="w-9 h-9 rounded-full bg-gray-100" />
+        <div>
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-medium text-gray-900">{author.name}</span>
+            <span className="text-xs text-gray-400">{author.title}</span>
+          </div>
+          <span className="text-xs text-gray-400">{timeAgo(pin.createdAt)}</span>
+        </div>
+        {pin.topic && (
+          <span className="ml-auto text-xs bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full">{pin.topic}</span>
+        )}
+      </div>
+      <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-line mb-3">{pin.content}</p>
+      <div className="flex items-center gap-6 text-gray-400">
+        <button
+          onClick={onToggleLike}
+          className={`flex items-center gap-1 text-sm hover:text-red-500 transition-colors ${liked ? "text-red-500" : ""}`}
+        >
+          <Heart size={16} fill={liked ? "currentColor" : "none"} />
+          {pin.likes + (liked ? 1 : 0)}
+        </button>
+        <button className="flex items-center gap-1 text-sm hover:text-blue-500">
+          <MessageCircle size={16} /> {pin.comments}
+        </button>
+        <button className="flex items-center gap-1 text-sm hover:text-green-500">
+          <Share2 size={16} /> 分享
+        </button>
+      </div>
+    </div>
+  );
 }
 
 export default function PinsPage() {
@@ -78,37 +117,12 @@ export default function PinsPage() {
         {/* 沸点列表 */}
         <div className="space-y-4">
           {filtered.map(pin => (
-            <div key={pin.id} className="bg-white rounded-xl border border-gray-200 p-4">
-              <div className="flex items-center gap-3 mb-3">
-                <img src={pin.author.avatar} alt={pin.author.name} className="w-9 h-9 rounded-full bg-gray-100" />
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium text-gray-900">{pin.author.name}</span>
-                    <span className="text-xs text-gray-400">{pin.author.title}</span>
-                  </div>
-                  <span className="text-xs text-gray-400">{timeAgo(pin.createdAt)}</span>
-                </div>
-                {pin.topic && (
-                  <span className="ml-auto text-xs bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full">{pin.topic}</span>
-                )}
-              </div>
-              <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-line mb-3">{pin.content}</p>
-              <div className="flex items-center gap-6 text-gray-400">
-                <button
-                  onClick={() => toggleLike(pin.id)}
-                  className={`flex items-center gap-1 text-sm hover:text-red-500 transition-colors ${likedPins.has(pin.id) ? "text-red-500" : ""}`}
-                >
-                  <Heart size={16} fill={likedPins.has(pin.id) ? "currentColor" : "none"} />
-                  {pin.likes + (likedPins.has(pin.id) ? 1 : 0)}
-                </button>
-                <button className="flex items-center gap-1 text-sm hover:text-blue-500">
-                  <MessageCircle size={16} /> {pin.comments}
-                </button>
-                <button className="flex items-center gap-1 text-sm hover:text-green-500">
-                  <Share2 size={16} /> 分享
-                </button>
-              </div>
-            </div>
+            <PinCard
+              key={pin.id}
+              pin={pin}
+              liked={likedPins.has(pin.id)}
+              onToggleLike={() => toggleLike(pin.id)}
+            />
           ))}
         </div>
       </main>

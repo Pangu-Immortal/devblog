@@ -38,10 +38,10 @@ export default function ProfilePage() {
 
   const [activeTab, setActiveTab] = useState<"posts" | "pins" | "likes">("posts");
 
-  // 展示用修改后的名字/头像，筛选数据用原始 mock 名字（改名不影响"资产"归属）
+  // 展示用修改后的名字/头像，筛选数据用 userId（改名不影响"资产"归属）
   const user = { ...CURRENT_USER, name: authUser.name, avatar: authUser.avatar, title: authUser.title };
-  const userPosts = POSTS.filter(p => p.author.name === CURRENT_USER.name);
-  const userPins = PINS.filter(p => p.author.name === CURRENT_USER.name);
+  const userPosts = POSTS.filter(p => p.author.userId === CURRENT_USER.userId);
+  const userPins = PINS.filter(p => p.author.userId === CURRENT_USER.userId);
 
   const likedPosts = POSTS.slice(0, 3); // 模拟赞过的文章
 

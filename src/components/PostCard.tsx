@@ -1,6 +1,9 @@
+"use client";
+
 import Link from "next/link";
 import { Eye, ThumbsUp, MessageCircle } from "lucide-react";
 import type { Post } from "@/lib/mock-data";
+import { useAuthorDisplay } from "@/lib/use-author";
 
 function formatCount(n: number): string {
   if (n >= 10000) return (n / 10000).toFixed(1) + "万";
@@ -19,6 +22,7 @@ function timeAgo(dateStr: string): string {
 }
 
 export default function PostCard({ post }: { post: Post }) {
+  const author = useAuthorDisplay(post.author);
   return (
     <Link href={`/posts/${post.id}`} className="block">
       <article className="py-4 border-b border-gray-100 hover:bg-gray-50/50 px-4 -mx-4 transition-colors group">
@@ -27,7 +31,7 @@ export default function PostCard({ post }: { post: Post }) {
           <div className="flex-1 min-w-0">
             {/* 作者信息 */}
             <div className="flex items-center gap-2 text-xs text-gray-400 mb-1.5">
-              <span className="text-gray-600 font-medium">{post.author.name}</span>
+              <span className="text-gray-600 font-medium">{author.name}</span>
               <span>·</span>
               <span>{timeAgo(post.createdAt)}</span>
               <span>·</span>

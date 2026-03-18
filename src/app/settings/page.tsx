@@ -5,13 +5,11 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Navbar from "@/components/Navbar";
 import { useAuth } from "@/lib/auth-context";
+import { ALL_AVATARS, AVATAR_GROUPS } from "@/lib/avatars";
 import { ArrowLeft, Camera, Save } from "lucide-react";
 
-// 头像种子列表，提供可选的头像风格
-const AVATAR_SEEDS = [
-  "Felix", "Dusty", "Mimi", "Aneka", "Luna", "Sage", "Pixel", "Nova",
-  "Echo", "Blaze", "Coral", "Drift", "Fern", "Glow", "Haze", "Iris",
-];
+// 风格 Tab 名称列表
+const STYLE_TABS = ["全部", ...Object.keys(AVATAR_GROUPS)] as const;
 
 export default function SettingsPage() {
   const { isLoggedIn, user, updateUser } = useAuth();
@@ -26,6 +24,7 @@ export default function SettingsPage() {
   const [bio, setBio] = useState("");
   const [selectedAvatar, setSelectedAvatar] = useState("");
   const [saved, setSaved] = useState(false);
+  const [activeTab, setActiveTab] = useState<string>("全部"); // 当前风格 Tab
 
   // 从 localStorage 加载用户扩展信息
   useEffect(() => {
@@ -42,6 +41,11 @@ export default function SettingsPage() {
   }, [user]);
 
   if (!isLoggedIn || !user) return null;
+
+  // 根据 Tab 过滤头像列表
+  const displayAvatars = activeTab === "全部"
+    ? ALL_AVATARS
+    : (AVATAR_GROUPS[activeTab] ?? ALL_AVATARS);
 
   const handleSave = () => {
     // 通过 AuthContext 更新用户信息（同步 React state + localStorage）
@@ -78,23 +82,42 @@ export default function SettingsPage() {
             </label>
             <div className="flex items-center gap-4 mb-4">
               <img src={selectedAvatar} alt="当前头像" className="w-16 h-16 rounded-full bg-gray-100 border-2 border-blue-400" />
-              <div className="text-sm text-gray-500">点击下方头像切换</div>
+              <div className="text-sm text-gray-500">点击下方头像切换（共 {ALL_AVATARS.length} 个）</div>
             </div>
-            <div className="grid grid-cols-8 gap-2">
-              {AVATAR_SEEDS.map(seed => {
-                const url = `https://api.dicebear.com/9.x/avataaars/svg?seed=${seed}`;
-                return (
+
+            {/* 风格 Tab 切换 */}
+            <div className="flex gap-2 mb-3 flex-wrap">
+              {STYLE_TABS.map(tab => (
+                <button
+                  key={tab}
+                  onClick={() => setActiveTab(tab)}
+                  className={`px-3 py-1 text-xs rounded-full border transition-colors ${
+                    activeTab === tab
+                      ? "bg-blue-600 text-white border-blue-600"
+                      : "bg-white text-gray-600 border-gray-200 hover:border-blue-300 hover:text-blue-600"
+                  }`}
+                >
+                  {tab}
+                  {tab !== "全部" && <span className="ml-1 opacity-60">({(AVATAR_GROUPS[tab] ?? []).length})</span>}
+                </button>
+              ))}
+            </div>
+
+            {/* 头像网格（10 列，可滚动） */}
+            <div className="max-h-64 overflow-y-auto rounded-lg border border-gray-100 p-2">
+              <div className="grid grid-cols-10 gap-2">
+                {displayAvatars.map((url, i) => (
                   <button
-                    key={seed}
+                    key={`${activeTab}-${i}`}
                     onClick={() => setSelectedAvatar(url)}
-                    className={`w-10 h-10 rounded-full overflow-hidden border-2 transition-all ${
+                    className={`w-10 h-10 rounded-full overflow-hidden border-2 transition-all flex-shrink-0 ${
                       selectedAvatar === url ? "border-blue-500 ring-2 ring-blue-200" : "border-gray-200 hover:border-blue-300"
                     }`}
                   >
-                    <img src={url} alt={seed} className="w-full h-full bg-gray-100" />
+                    <img src={url} alt={`头像 ${i + 1}`} className="w-full h-full bg-gray-100" />
                   </button>
-                );
-              })}
+                ))}
+              </div>
             </div>
           </div>
 

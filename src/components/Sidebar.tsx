@@ -4,6 +4,7 @@ import Link from "next/link";
 import { TrendingUp, Award, BookOpen } from "lucide-react";
 import { useState } from "react";
 import { useAuth } from "@/lib/auth-context";
+import { AUTHORS } from "@/lib/users";
 
 const hotArticles = [
   { rank: 1, title: "2026 年前端框架趋势：React Server Components 彻底改变了什么？", id: "1", hot: "12.5k" },
@@ -13,10 +14,13 @@ const hotArticles = [
   { rank: 5, title: "Docker Compose 到 Kubernetes：小团队的渐进式容器化之路", id: "5", hot: "5.4k" },
 ];
 
+// 从 60 人 AUTHORS 池选 5 个推荐作者（覆盖不同领域）
 const recommendedAuthors = [
-  { name: "张三丰", desc: "全栈工程师 · 128 篇文章", avatar: "Felix" },
-  { name: "王五岳", desc: "AI 算法工程师 · 86 篇文章", avatar: "Dusty" },
-  { name: "赵六合", desc: "后端工程师 · 64 篇文章", avatar: "Mimi" },
+  { ...AUTHORS[0],  desc: "全栈工程师 · 128 篇文章" },     // 张三丰
+  { ...AUTHORS[4],  desc: "高级前端工程师 · 86 篇文章" },   // 陈思远
+  { ...AUTHORS[16], desc: "Go 后端架构师 · 64 篇文章" },    // 高志远
+  { ...AUTHORS[26], desc: "机器学习工程师 · 52 篇文章" },   // 邓锐峰
+  { ...AUTHORS[40], desc: "SRE 工程师 · 41 篇文章" },       // 史泽华
 ];
 
 const hotColumns = [
@@ -29,11 +33,16 @@ export default function Sidebar() {
   const [followed, setFollowed] = useState<Set<string>>(new Set());
   const { isLoggedIn, openLoginPrompt } = useAuth();
 
-  const toggleFollow = (name: string) => {
+  const toggleFollow = (userId: string) => {
     if (!isLoggedIn) { openLoginPrompt(); return; }
     setFollowed(prev => {
       const next = new Set(prev);
-      if (next.has(name)) next.delete(name); else next.add(name);
+      if (next.has(userId)) next.delete(userId); else next.add(userId);
+      // 同步到 localStorage
+      const arr: string[] = JSON.parse(localStorage.getItem("devblog_follows") || "[]");
+      if (next.has(userId)) { if (!arr.includes(userId)) arr.push(userId); }
+      else { const idx = arr.indexOf(userId); if (idx >= 0) arr.splice(idx, 1); }
+      localStorage.setItem("devblog_follows", JSON.stringify(arr));
       return next;
     });
   };
@@ -73,10 +82,10 @@ export default function Sidebar() {
         </div>
         <div className="space-y-3">
           {recommendedAuthors.map((author) => (
-            <div key={author.name} className="flex items-center gap-3">
+            <div key={author.userId} className="flex items-center gap-3">
               <Link href={`/search?q=${encodeURIComponent(author.name)}`} className="flex items-center gap-3 flex-1 min-w-0 group">
                 <img
-                  src={`https://api.dicebear.com/9.x/avataaars/svg?seed=${author.avatar}`}
+                  src={author.avatar}
                   alt={author.name}
                   className="w-8 h-8 rounded-full bg-gray-100"
                 />
@@ -86,14 +95,14 @@ export default function Sidebar() {
                 </div>
               </Link>
               <button
-                onClick={() => toggleFollow(author.name)}
+                onClick={() => toggleFollow(author.userId)}
                 className={`text-xs border rounded-full px-3 py-0.5 transition-colors flex-shrink-0 ${
-                  followed.has(author.name)
+                  followed.has(author.userId)
                     ? "bg-gray-100 text-gray-500 border-gray-200"
                     : "text-blue-600 border-blue-200 hover:bg-blue-50"
                 }`}
               >
-                {followed.has(author.name) ? "已关注" : "关注"}
+                {followed.has(author.userId) ? "已关注" : "关注"}
               </button>
             </div>
           ))}

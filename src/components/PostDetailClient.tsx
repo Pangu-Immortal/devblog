@@ -7,6 +7,7 @@ import Navbar from "@/components/Navbar";
 import MarkdownRenderer from "@/components/MarkdownRenderer";
 import { getCommentsByPostId } from "@/lib/mock-extras";
 import { useAuth } from "@/lib/auth-context";
+import { useAuthorDisplay } from "@/lib/use-author";
 import type { Post } from "@/lib/mock-data";
 import type { Comment } from "@/lib/mock-extras";
 
@@ -96,6 +97,7 @@ function CommentItem({ comment, onReply, onLike, likedComments }: {
 export default function PostDetailClient({ post }: { post: Post }) {
   const id = post.id;
   const { isLoggedIn, openLoginPrompt, user: authUser } = useAuth();
+  const author = useAuthorDisplay(post.author);
   const [liked, setLiked] = useState(false);
   const [bookmarked, setBookmarked] = useState(false);
   const [followed, setFollowed] = useState(false);
@@ -114,7 +116,7 @@ export default function PostDetailClient({ post }: { post: Post }) {
       const bookmarks: string[] = JSON.parse(localStorage.getItem("devblog_bookmarks") || "[]");
       setBookmarked(bookmarks.includes(id));
       const follows: string[] = JSON.parse(localStorage.getItem("devblog_follows") || "[]");
-      setFollowed(follows.includes(post.author.name));
+      setFollowed(follows.includes(post.author.userId));
       const likeCounts = JSON.parse(localStorage.getItem("devblog_like_counts") || "{}");
       setLikeCount(likeCounts[id] || 0);
       const uc = JSON.parse(localStorage.getItem("devblog_user_comments") || "[]");
@@ -134,7 +136,7 @@ export default function PostDetailClient({ post }: { post: Post }) {
       const views = JSON.parse(localStorage.getItem("devblog_views") || "{}");
       setViewCount(views[id] || 0);
     }
-  }, [id, post.author.name]);
+  }, [id, post.author.userId]);
 
   const mockComments = getCommentsByPostId(id);
 
@@ -166,7 +168,7 @@ export default function PostDetailClient({ post }: { post: Post }) {
     const newVal = !followed;
     setFollowed(newVal);
     const arr: string[] = JSON.parse(localStorage.getItem("devblog_follows") || "[]");
-    if (newVal) arr.push(post.author.name); else arr.splice(arr.indexOf(post.author.name), 1);
+    if (newVal) arr.push(post.author.userId); else arr.splice(arr.indexOf(post.author.userId), 1);
     localStorage.setItem("devblog_follows", JSON.stringify(arr));
   };
 
@@ -214,12 +216,12 @@ export default function PostDetailClient({ post }: { post: Post }) {
 
           <div className="flex items-center gap-3 mb-6 pb-6 border-b border-gray-100">
             <Link href="/profile">
-              <img src={post.author.avatar} alt={post.author.name} className="w-10 h-10 rounded-full bg-gray-100 hover:ring-2 hover:ring-blue-200 transition-all" />
+              <img src={author.avatar} alt={author.name} className="w-10 h-10 rounded-full bg-gray-100 hover:ring-2 hover:ring-blue-200 transition-all" />
             </Link>
             <div>
               <div className="flex items-center gap-2">
-                <Link href="/profile" className="text-sm font-medium text-gray-900 hover:text-blue-600">{post.author.name}</Link>
-                <span className="text-xs text-gray-400">{post.author.title}</span>
+                <Link href="/profile" className="text-sm font-medium text-gray-900 hover:text-blue-600">{author.name}</Link>
+                <span className="text-xs text-gray-400">{author.title}</span>
               </div>
               <div className="flex items-center gap-3 text-xs text-gray-400 mt-0.5">
                 <span>{new Date(post.createdAt).toLocaleDateString("zh-CN")}</span>
@@ -279,7 +281,7 @@ export default function PostDetailClient({ post }: { post: Post }) {
         <div id="comments" className="bg-white rounded-xl border border-gray-200 p-6 mt-6">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">评论 ({totalComments})</h3>
           <div className="flex items-start gap-3 mb-6 pb-6 border-b border-gray-100">
-            <img src={authUser?.avatar || "https://api.dicebear.com/9.x/avataaars/svg?seed=Felix"} alt="我" className="w-8 h-8 rounded-full bg-gray-100 flex-shrink-0" />
+            <img src={authUser?.avatar || "https://api.dicebear.com/9.x/big-smile/svg?seed=Astro"} alt="我" className="w-8 h-8 rounded-full bg-gray-100 flex-shrink-0" />
             <div className="flex-1">
               {replyingTo && (
                 <div className="text-xs text-blue-600 mb-2 flex items-center gap-2">
@@ -309,7 +311,7 @@ export default function PostDetailClient({ post }: { post: Post }) {
           {userComments.map(uc => (
             <div key={uc.id} className="py-4 border-b border-gray-50">
               <div className="flex items-start gap-3">
-                <img src={authUser?.avatar || "https://api.dicebear.com/9.x/avataaars/svg?seed=Felix"} alt="我" className="w-8 h-8 rounded-full bg-gray-100" />
+                <img src={authUser?.avatar || "https://api.dicebear.com/9.x/big-smile/svg?seed=Astro"} alt="我" className="w-8 h-8 rounded-full bg-gray-100" />
                 <div>
                   <div className="flex items-center gap-2 mb-1">
                     <span className="text-sm font-medium text-gray-900">{authUser?.name || "我"}</span>
