@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useState } from "react";
+import { Suspense, useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Navbar from "@/components/Navbar";
@@ -10,7 +10,7 @@ import { Mail, Lock, User, Eye, EyeOff } from "lucide-react";
 function LoginContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { login, register, isLoggedIn } = useAuth();
+  const { login, register, isLoggedIn, isHydrated } = useAuth();
 
   const [tab, setTab] = useState<"login" | "register">("login");
   const [email, setEmail] = useState("");
@@ -22,10 +22,19 @@ function LoginContent() {
 
   const redirect = searchParams.get("redirect") || "/";
 
-  // 已登录则跳转
-  if (isLoggedIn) {
-    router.replace(redirect);
-    return null;
+  // 已登录则跳转（必须在 useEffect 中，避免渲染阶段调用 router 导致无限循环）
+  useEffect(() => {
+    if (isHydrated && isLoggedIn) router.replace(redirect);
+  }, [isHydrated, isLoggedIn, redirect, router]);
+
+  // 水合未完成 或 已登录等待跳转，显示加载状态
+  if (!isHydrated || isLoggedIn) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Navbar />
+        <div className="flex justify-center py-20 text-gray-400">加载中...</div>
+      </div>
+    );
   }
 
   const handleLogin = (e: React.FormEvent) => {

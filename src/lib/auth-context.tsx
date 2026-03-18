@@ -16,6 +16,7 @@ export interface AuthUser {
 interface AuthContextType {
   user: AuthUser | null;
   isLoggedIn: boolean;
+  isHydrated: boolean;             // 是否已从 localStorage 恢复状态
   login: (email: string, password: string) => { ok: boolean; error?: string };
   register: (name: string, email: string, password: string) => { ok: boolean; error?: string };
   logout: () => void;
@@ -72,6 +73,7 @@ function getStoredUsers(): StoredUser[] {
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
+  const [isHydrated, setIsHydrated] = useState(false); // localStorage 恢复完成标志
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
 
   // 初始化：从 localStorage 恢复登录状态
@@ -82,6 +84,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // 确保预置账号存在
       getStoredUsers();
     } catch { /* ignore */ }
+    setIsHydrated(true); // 无论成功失败，标记恢复完成
   }, []);
 
   const login = useCallback((email: string, password: string) => {
@@ -147,6 +150,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     <AuthContext.Provider value={{
       user,
       isLoggedIn: !!user,
+      isHydrated,
       login,
       register,
       logout,

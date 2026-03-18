@@ -33,14 +33,14 @@ const typeColors = {
 };
 
 export default function NotificationsPage() {
-  const { isLoggedIn } = useAuth();
+  const { isLoggedIn, isHydrated } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
-    if (!isLoggedIn) router.replace("/login?redirect=/notifications");
-  }, [isLoggedIn, router]);
+    if (isHydrated && !isLoggedIn) router.replace("/login?redirect=/notifications");
+  }, [isHydrated, isLoggedIn, router]);
 
-  if (!isLoggedIn) return null;
+  if (!isHydrated || !isLoggedIn) return null;
 
   const [notifications, setNotifications] = useState(() => {
     // 从 localStorage 恢复已读状态

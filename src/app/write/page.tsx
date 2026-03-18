@@ -20,14 +20,14 @@ const TOOLBAR_ITEMS = [
 ];
 
 export default function WritePage() {
-  const { isLoggedIn } = useAuth();
+  const { isLoggedIn, isHydrated } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
-    if (!isLoggedIn) router.replace("/login?redirect=/write");
-  }, [isLoggedIn, router]);
+    if (isHydrated && !isLoggedIn) router.replace("/login?redirect=/write");
+  }, [isHydrated, isLoggedIn, router]);
 
-  if (!isLoggedIn) return null;
+  if (!isHydrated || !isLoggedIn) return null;
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [tags, setTags] = useState<string[]>([]);

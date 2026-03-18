@@ -27,14 +27,14 @@ function timeAgo(dateStr: string) {
 }
 
 export default function ProfilePage() {
-  const { isLoggedIn, user: authUser } = useAuth();
+  const { isLoggedIn, isHydrated, user: authUser } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
-    if (!isLoggedIn) router.replace("/login?redirect=/profile");
-  }, [isLoggedIn, router]);
+    if (isHydrated && !isLoggedIn) router.replace("/login?redirect=/profile");
+  }, [isHydrated, isLoggedIn, router]);
 
-  if (!isLoggedIn || !authUser) return null;
+  if (!isHydrated || !isLoggedIn || !authUser) return null;
 
   const [activeTab, setActiveTab] = useState<"posts" | "pins" | "likes">("posts");
 

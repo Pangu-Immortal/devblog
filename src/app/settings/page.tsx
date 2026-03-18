@@ -12,12 +12,15 @@ import { ArrowLeft, Camera, Save } from "lucide-react";
 const STYLE_TABS = ["全部", ...Object.keys(AVATAR_GROUPS)] as const;
 
 export default function SettingsPage() {
-  const { isLoggedIn, user, updateUser } = useAuth();
+  const { isLoggedIn, isHydrated, user, updateUser } = useAuth();
   const router = useRouter();
 
+  // 等 localStorage 恢复完成后再判断是否跳转，避免初始 user=null 就误跳
   useEffect(() => {
-    if (!isLoggedIn) router.replace("/login?redirect=/settings");
-  }, [isLoggedIn, router]);
+    if (isHydrated && !isLoggedIn) {
+      router.replace("/login?redirect=/settings");
+    }
+  }, [isHydrated, isLoggedIn, router]);
 
   const [name, setName] = useState("");
   const [title, setTitle] = useState("");
@@ -40,7 +43,7 @@ export default function SettingsPage() {
     }
   }, [user]);
 
-  if (!isLoggedIn || !user) return null;
+  if (!isHydrated || (!isLoggedIn) || !user) return null;
 
   // 根据 Tab 过滤头像列表
   const displayAvatars = activeTab === "全部"
